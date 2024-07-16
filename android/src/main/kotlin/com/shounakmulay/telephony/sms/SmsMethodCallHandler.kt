@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.annotation.RequiresApi
 import com.shounakmulay.telephony.PermissionsController
 import com.shounakmulay.telephony.utils.ActionType
 import com.shounakmulay.telephony.utils.Constants
@@ -191,7 +190,15 @@ class SmsMethodCallHandler(
         addAction(Constants.ACTION_SMS_SENT)
         addAction(Constants.ACTION_SMS_DELIVERED)
       }
-      context.applicationContext.registerReceiver(this, intentFilter)
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.applicationContext.registerReceiver(
+          this,
+          intentFilter,
+          Context.RECEIVER_NOT_EXPORTED
+        )
+      } else {
+        context.applicationContext.registerReceiver(this, intentFilter)
+      }
     }
     when (smsAction) {
       SmsAction.SEND_SMS -> smsController.sendSms(address, messageBody, listenStatus)
@@ -276,7 +283,7 @@ class SmsMethodCallHandler(
    * If not granted then it will request the permission from the user.
    */
   private fun handleMethod(smsAction: SmsAction, requestCode: Int) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checkOrRequestPermission(smsAction, requestCode)) {
+    if (checkOrRequestPermission(smsAction, requestCode)) {
       execute(smsAction)
     }
   }
@@ -284,7 +291,6 @@ class SmsMethodCallHandler(
   /**
    * Check and request if necessary for all the SMS permissions listed in the manifest
    */
-  @RequiresApi(Build.VERSION_CODES.M)
   fun checkOrRequestPermission(smsAction: SmsAction, requestCode: Int): Boolean {
     this.action = smsAction
     this.requestCode = requestCode
@@ -338,7 +344,6 @@ class SmsMethodCallHandler(
     this.activity = activity
   }
 
-  @RequiresApi(Build.VERSION_CODES.M)
   private fun checkOrRequestPermission(permissions: List<String>, requestCode: Int): Boolean {
     permissionsController.apply {
       
